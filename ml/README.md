@@ -28,7 +28,12 @@ All commands run from `ml/`.
 | `uv run python -m horse_ml.ghosting.train` | Trains all models, tunes them on **validation**, saves them to `models/` (~3 min) |
 | `uv run python -m horse_ml.ghosting.evaluate` | **One-time** test evaluation: results table to `models/results.md` |
 | `uv run python -m horse_ml.viz.ghosts` | Ghost plots from validation: `outputs/ghost_low.png`, `ghost_high.png`, `ghost_high.gif` |
-| `uv run pytest` | Runs the tests (real-data tests are skipped if the data is not downloaded) |
+| `uv run python -m horse_ml.data.pff index <Metadata.zip>` | Rebuilds `reference/pff_matches.csv` (the 64 World Cup games) from the PFF Metadata |
+| `uv run python -m horse_ml.worldcup.build [--games ID ...]` | World Cup samples for every game with local files into `data/processed/pff/` (~70 s per game); prints segments and automatic corrections |
+| `uv run python -m horse_ml.ghosting.train --dataset worldcup` | Trains all models on the World Cup samples (`models/worldcup/`) |
+| `uv run python -m horse_ml.ghosting.evaluate --dataset worldcup` | One-time test evaluation, incl. error on visible defenders only |
+| `uv run python -m horse_ml.viz.wc_ghosts` | Defensive-line ghosts from validation games: `outputs/wc_ghost_low.png`, `wc_ghost_high.png/.gif` |
+| `uv run pytest` | Runs the tests (real-data tests are skipped if the data is not available) |
 
 `frame` and `animate` accept `--period` and `--time` / `--start` to pick another moment;
 `viz.sample` accepts `--sample-id`; `preprocessing.build` accepts `--games`;
@@ -43,7 +48,16 @@ src/horse_ml/
 │   ├── download.py     # fetches raw files from GitHub
 │   ├── loading.py      # load_tracking() / load_events() via kloppy
 │   ├── games.py        # registry of games the pipeline processes
+│   ├── pff.py          # PFF readers (metadata, roster, events, streamed tracking) + match table
 │   └── selection.py    # find events, slice frames by time
+├── worldcup/           # phase 4, PFF World Cup 2022
+│   ├── frames.py       # home attacking right, smoothed positions, visibility, velocities
+│   ├── possession.py   # ball state + possession from events attached to frames
+│   ├── lineups.py      # formation segments (substitutions, periods)
+│   ├── backline.py     # common roles, defensive line per segment, manual overrides
+│   ├── samples.py      # samples with variable line, presence + visibility flags
+│   ├── split.py        # split by whole games (reference/pff_splits.csv)
+│   └── build.py        # runs everything, writes Parquet + metadata.json
 ├── explore.py          # dataset summary
 ├── preprocessing/
 │   ├── coordinates.py  # Metrica [0,1] -> metres, half-time and possession flips
@@ -66,7 +80,12 @@ src/horse_ml/
     ├── frame.py        # single-frame PNG
     ├── animate.py      # GIF animation
     ├── sample.py       # one processed sample with velocity arrows
-    └── ghosts.py       # real vs ghost defenders (PNG + GIF)
+    ├── ghosts.py       # real vs ghost defenders (PNG + GIF), Metrica
+    └── wc_ghosts.py    # defensive-line ghosts, World Cup
+reference/              # versioned, derived (no raw data)
+├── pff_matches.csv     # the 64 World Cup games: id, date, stage, teams, fps, direction
+├── pff_splits.csv      # game -> train / val / test
+└── backline_overrides.json  # manual corrections of the defensive line
 ```
 
 ## Data notes (Metrica Sample Game 3)
@@ -194,3 +213,113 @@ expects them.
   leave gaps no real defence would leave.
 - **Single frames**: the model does not see the previous seconds of play; sequence
   models are a natural next step.
+
+## World Cup 2022 (phase 4)
+
+### Data: Gradient Sports / PFF FC
+
+Broadcast tracking + events of all 64 games of the 2022 World Cup, from an
+**unofficial Google Drive mirror with no known terms of use**. Raw files are never
+committed: put them in `data/raw/pff/` keeping the original sub-folders
+(`Metadata/`, `Rosters/`, `Event Data/`, `Tracking Data/`, plus `players.csv`). The
+event JSON exists in three versions; the folder root is the latest (June 2025 update,
+with `teamAttackingDirection` and per-player `positionGroupType`) and is the one used.
+`reference/pff_matches.csv` lists the 64 games (id, date, stage, teams, fps,
+`homeTeamStartLeft`); Germany: 3821 Germany - Japan, 3839 Spain - Germany,
+3855 Costa Rica - Germany.
+
+Checked on Germany's 3 games:
+
+| | 3821 GER-JPN | 3839 ESP-GER | 3855 CRC-GER |
+|---|---|---|---|
+| Unique frames (29.97 fps) | 187,292 | 176,403 | 181,685 |
+| Duplicated lines (same frame, several possession events) | 56 | 576 | 758 |
+| Frames with every player *estimated* (replays, close-ups) | 40.6% | 35.5% | 37.2% |
+| In play, possession known, ≥1 player visible | 52.2% | 54.7% | 57.0% |
+| Line targets visible on camera (in the samples) | 48.1% | 56.6% | 61.9% |
+
+- **Coordinates**: already metres, origin at the centre spot, y up, pitch 105 × 68 in
+  every game. Only the attacking direction is normalized (`homeTeamStartLeft`, swapped
+  at half-time; checked with the goalkeepers' average position).
+- **Players are never missing, but often estimated**: 11 + 11 players in 99.8% of the
+  frames; off-camera players get `visibility = ESTIMATED` and a position inferred by
+  PFF. A player is visible in ~40% of frames, a goalkeeper in 5-10%.
+- **Smoothed positions**: PFF provides raw and Kalman-smoothed positions. Raw ones jump
+  (a centre back reaches 111 m/s); we use the smoothed ones. Savitzky-Golay window 9
+  frames (0.30 s): player speed percentiles are identical with 5, 9 or 15 frames
+  (p99 ≈ 6.1-6.3 m/s), because the positions are already smooth; ~1,000 values per
+  game above 12 m/s are set to NaN.
+- **Possession and ball state** come from the events attached to frames (`home_ball`,
+  on-the-ball / ball out / end of half), carried forward; the set piece and the
+  possession sequence come from the event file.
+- **Roles**: rosters give one role per player and game from a vocabulary shared by
+  all teams (GK, RB, RCB, MCB, LCB, LB, RWB, LWB, DM, CM, AM, RW, LW, CF). There is no
+  formation field and roles never change during a game, even when the system does.
+- **kloppy** reads PFF tracking but drops `visibility`, maps MCB/RWB/LWB to Unknown,
+  keeps duplicated frames and has no PFF event reader: we read the files directly
+  (`data/pff.py`); a test checks that our smoothed positions equal kloppy's.
+
+### Defensive line, common roles, inputs
+
+- **Target = the defensive line** of the team without the ball (3, 4 or 5 players),
+  decided per *formation segment* (a stretch with the same players on the pitch,
+  split at substitutions and half-time), never per frame: a full back caught upfield
+  in a counter-attack is still a target.
+- **Hybrid rule**: roster labels decide who is in the line; the average defending
+  positions of the segment are only used when labels are inconsistent:
+  - duplicate lateral labels (e.g. two "RB" after Japan switched to a back three):
+    the labelled players stay, their right-to-left order comes from positions;
+  - wrong count, or a non-defender defending deeper than the line (median - 2 m):
+    the line is rebuilt from positions (largest depth gap);
+  - manual corrections in `reference/backline_overrides.json` win over both.
+  The build summary lists every automatically corrected segment with the values
+  needed for an override (game, team, period, `start_s`, player ids).
+- **Common slots** for every nation: 0 right (RB/RWB), 1 right-centre, 2 centre,
+  3 left-centre, 4 left (LB/LWB). Back three: slots 1-3; back four: 0, 1, 3, 4; back
+  five: all. Order inside the line always from average lateral position (labels can
+  be wrong: Costa Rica's "RCB" plays in the centre and the "MCB" on the right).
+- **Inputs**: ball (x, y, z, velocity, visible), the 11 attackers (`att_k`) and the
+  defending players outside the line, goalkeeper first (`dof_k`, 8 slots), each with
+  x, y, vx, vy, **visible** and **present**; the line size enters the unified MLP
+  as a one-hot. Absent players: zeros and present = 0. An instant is dropped only if
+  a player of the line is missing (never happened in the 3 games); estimated
+  positions are kept as inputs and as targets.
+- **Split by whole games** (`reference/pff_splits.csv`): for the pipeline check 3821
+  train, 3839 validation, 3855 test.
+
+Germany's 3 games give **49,651 samples** (~5 Hz) and 220 columns; line sizes: Japan
+3/4/5 (system changes in the 2nd half), Costa Rica mostly 5, Germany and Spain 4.
+12 segments were corrected automatically (Japan's and Germany's 2nd halves, Costa
+Rica after a substitution); they are listed by `worldcup.build` for review.
+
+### Pipeline check (no conclusions)
+
+Same models as phase 3 (grouped by line size instead of team), metric on the line
+players only, plus the error on **visible** targets. One game per split, so these
+numbers only show that everything runs from raw files to ghosts:
+
+| Model | Train | Val | Val settled | Val visible | Test | Test settled | Test visible |
+|---|---|---|---|---|---|---|---|
+| (a) Mean line shape | 16.00 | 17.10 | 16.20 | 19.43 | 19.96 | 19.46 | 21.85 |
+| (b) Ridge on ball position | 8.43 | 8.75 | 8.19 | 10.16 | 13.15 | 12.80 | 14.35 |
+| (c) kNN on situation | 4.58 | 6.38 | 6.12 | 7.71 | 8.06 | 7.76 | 9.30 |
+| (d1) MLP, one per line size | 2.75 ± 0.04 | 5.26 ± 0.01 | 5.00 ± 0.00 | 6.19 ± 0.03 | 7.17 ± 0.19 | 6.80 ± 0.21 | 8.41 ± 0.20 |
+| (d2) MLP, unified + line size | 3.02 ± 0.19 | 5.12 ± 0.06 | 4.87 ± 0.07 | 6.11 ± 0.04 | 6.36 ± 0.02 | 6.00 ± 0.03 | 7.73 ± 0.03 |
+
+| Low error (2.1 m, Germany defending) | High error (14.9 m, Spain pressing high) |
+|---|---|
+| ![low](../docs/images/wc_ghost_low.png) | ![high](../docs/images/wc_ghost_high.png) |
+
+### Open points
+
+- **Review the 12 automatic corrections** of the defensive line and add overrides
+  where the football reading differs (e.g. Japan's wing-backs: a back four with
+  Tomiyasu at left-centre, or a back five?).
+- **Estimated targets look easier than visible ones** (test 6.4 m on all line
+  players vs 7.7 m on visible ones): PFF's off-camera estimates may be smoother or
+  closer to a "typical" shape. Decide whether to down-weight them in the loss.
+- With only one game per split, the validation game has only back fours, so line
+  sizes 3 and 5 use the end of the training data for early stopping (per-size MLP).
+- Ridge picked the largest α in the grid; grids should be revisited with more games.
+- Next: all 64 games, a stratified game split, then per-team analysis (where Germany
+  differs from the ghosts).
