@@ -44,7 +44,14 @@ from horse_ml.preprocessing.possession import (
 )
 from horse_ml.preprocessing.roles import N_SLOTS, TeamSlots, assign_slots
 from horse_ml.preprocessing.samples import DEFAULT_SAMPLE_EVERY, SampleStats, build_samples
-from horse_ml.preprocessing.split import DEFAULT_FRACTIONS, DEFAULT_GAP_S, assign_splits, blocks_as_dicts
+from horse_ml.preprocessing.split import (
+    DEFAULT_BLOCK_S,
+    DEFAULT_FRACTIONS,
+    DEFAULT_GAP_S,
+    DEFAULT_SEED,
+    assign_splits,
+    blocks_as_dicts,
+)
 
 SAMPLES_FILE = "samples.parquet"
 METADATA_FILE = "metadata.json"
@@ -118,7 +125,18 @@ def slot_check(table: FrameTable, slots: TeamSlots, x: np.ndarray, y: np.ndarray
     return out
 
 
-def process_game(source: GameSource) -> GameResult:
+@dataclass
+class PreparedGame:
+    """Everything needed to cut samples from one game, at any sampling rate."""
+
+    table: FrameTable
+    possession: pd.DataFrame
+    in_play: np.ndarray
+    team_slots: dict[str, TeamSlots]
+    invalidated: dict[str, int]
+
+
+def prepare_game(source: GameSource) -> PreparedGame:
     t0 = time.perf_counter()
     print(f"[{source.game_id}] loading tracking + events...")
     tracking = source.load_tracking()
@@ -142,27 +160,48 @@ def process_game(source: GameSource) -> GameResult:
         table.pitch_length,
         table.pitch_width,
     )
+    team_slots = {
+        team.team_id: assign_slots(team, *team_positions(table, team.team_id)) for team in table.teams
+    }
+    return PreparedGame(table, possession, in_play, team_slots, invalidated)
 
-    team_slots: dict[str, TeamSlots] = {}
-    checks: dict[str, list[dict]] = {}
-    for team in table.teams:
-        x, y = team_positions(table, team.team_id)
-        team_slots[team.team_id] = assign_slots(team, x, y)
-        checks[team.name] = slot_check(table, team_slots[team.team_id], x, y)
 
-    samples, stats = build_samples(table, possession, in_play, team_slots)
+def window_samples(prepared: PreparedGame, period: int, start_s: float, end_s: float) -> pd.DataFrame:
+    """Samples at the full frame rate (25 Hz) for one time window, e.g. for animations.
+
+    Same features as the training samples; frames that are not in play or are
+    incomplete are simply missing from the result.
+    """
+    df = prepared.table.df
+    window = (df["period_id"].to_numpy() == period) & df["t"].between(start_s, end_s).to_numpy()
+    samples, _ = build_samples(
+        prepared.table, prepared.possession, prepared.in_play & window, prepared.team_slots, sample_every=1
+    )
+    return samples
+
+
+def process_game(source: GameSource) -> GameResult:
+    t0 = time.perf_counter()
+    prepared = prepare_game(source)
+    table, in_play = prepared.table, prepared.in_play
+
+    checks = {
+        table.team(tid).name: slot_check(table, slots, *team_positions(table, tid))
+        for tid, slots in prepared.team_slots.items()
+    }
+    samples, stats = build_samples(table, prepared.possession, in_play, prepared.team_slots)
     report = speed_percentiles(table, in_play)
     print(f"[{source.game_id}] {len(samples):,} samples ({time.perf_counter() - t0:.0f} s)")
 
     return GameResult(
         samples=samples,
         stats=stats,
-        team_slots=team_slots,
-        invalidated=invalidated,
+        team_slots=prepared.team_slots,
+        invalidated=prepared.invalidated,
         speed_report=report,
         slot_check=checks,
         in_play_share=float(in_play.mean()),
-        possession_known_share=float(possession["possession_team_id"].notna().mean()),
+        possession_known_share=float(prepared.possession["possession_team_id"].notna().mean()),
     )
 
 
@@ -228,9 +267,12 @@ def write_outputs(
             "transitions": "not filtered, see seconds_since_possession_change",
         },
         "split": {
-            "method": "contiguous blocks per game and period",
+            "method": "alternating contiguous time blocks per game and period, assignment "
+            "balanced on sample counts and defending team (no target information)",
             "fractions": dict(DEFAULT_FRACTIONS),
+            "block_s": DEFAULT_BLOCK_S,
             "gap_s": DEFAULT_GAP_S,
+            "seed": DEFAULT_SEED,
             "blocks": blocks,
             "counts": samples["split"].value_counts().to_dict(),
         },
@@ -256,7 +298,7 @@ def write_outputs(
     return samples_path, metadata_path
 
 
-def print_summary(samples: pd.DataFrame, results: dict[str, GameResult]) -> None:
+def print_summary(samples: pd.DataFrame, results: dict[str, GameResult], blocks: list[dict]) -> None:
     print()
     for gid, r in results.items():
         s = r.stats
@@ -290,8 +332,15 @@ def print_summary(samples: pd.DataFrame, results: dict[str, GameResult]) -> None
         print()
 
     print("=== Samples per split and defending team ===")
-    table = pd.crosstab(samples["split"], samples["defending_team"], margins=True, margins_name="total")
-    print(table.reindex(["train", "val", "test", "total"]).to_string())
+    order = ["train", "val", "test", "total"]
+    counts = pd.crosstab(samples["split"], samples["defending_team"], margins=True, margins_name="total")
+    counts = counts.reindex(order)
+    shares = counts.drop(columns="total").div(counts["total"], axis=0).mul(100).round(1)
+    shares.columns = [f"{c} %" for c in shares.columns]
+    split_share = (counts["total"] / counts.loc["total", "total"] * 100).round(1).rename("of all %")
+    print(pd.concat([counts, shares, split_share], axis=1).to_string())
+    n_blocks = pd.Series([b["split"] for b in blocks]).value_counts().reindex(order[:-1])
+    print("Blocks per split: " + ", ".join(f"{k} {v}" for k, v in n_blocks.items()))
 
 
 def main() -> None:
@@ -306,8 +355,9 @@ def main() -> None:
     samples.insert(samples.columns.get_loc("timestamp_s") + 1, "split", split)
     samples = samples[samples["split"].notna()].reset_index(drop=True)
 
-    samples_path, metadata_path = write_outputs(samples, results, blocks_as_dicts(blocks), args.out)
-    print_summary(samples, results)
+    block_dicts = blocks_as_dicts(blocks)
+    samples_path, metadata_path = write_outputs(samples, results, block_dicts, args.out)
+    print_summary(samples, results, block_dicts)
     print(f"\nSaved {samples_path} ({samples_path.stat().st_size / 1e6:.1f} MB, {len(samples):,} rows)")
     print(f"Saved {metadata_path}")
 
