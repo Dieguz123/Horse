@@ -15,3 +15,4 @@ METRICA_DIR = RAW_DIR / "metrica"
 PROCESSED_DIR = DATA_DIR / "processed"
 
 OUTPUTS_DIR = ML_ROOT / "outputs"
+MODELS_DIR = ML_ROOT / "models"
