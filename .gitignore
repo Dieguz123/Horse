@@ -1,0 +1,53 @@
+# ============================================================
+# Horse monorepo .gitignore
+# ============================================================
+
+### OS / editors ###
+.DS_Store
+Thumbs.db
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+
+### Data & generated artifacts (never commit raw data) ###
+ml/data/*
+!ml/data/.gitkeep
+ml/outputs/*
+!ml/outputs/.gitkeep
+
+### Python (ml/) ###
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+.ipynb_checkpoints/
+*.pt
+*.pth
+
+### Java / Gradle (backend/) ###
+backend/.gradle/
+backend/build/
+!backend/gradle/wrapper/gradle-wrapper.jar
+backend/HELP.md
+out/
+bin/
+.classpath
+.project
+.settings/
+.factorypath
+.apt_generated
+.sts4-cache
+
+### Node / Angular (frontend/) ###
+node_modules/
+frontend/dist/
+frontend/.angular/
+
+### Env / secrets ###
+.env
+.env.*
