@@ -1,0 +1,11 @@
+{
+  "_doc": [
+    "Manual corrections of the defensive line per formation segment (World Cup pipeline).",
+    "Each override matches one segment by game_id, team (name), period and start_s (seconds since",
+    "period start, +-15 s tolerance; the build summary prints these values for every segment).",
+    "back_line lists player ids from right to left (3, 4 or 5 ids). Slots: 3 -> right-centre, centre,",
+    "left-centre; 4 -> right, right-centre, left-centre, left; 5 -> right, right-centre, centre,",
+    "left-centre, left. 'reason' is free text for the record."
+  ],
+  "overrides": []
+}
