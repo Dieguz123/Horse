@@ -1,0 +1,65 @@
+game_id,date,stage,week,home,away,home_id,away_id,fps,pitch_length,pitch_width,home_start_left
+3814,2022-11-20,Group 1,1,Qatar,Ecuador,360,381,29.97,105.0,68.0,True
+3812,2022-11-21,Group 1,1,Senegal,Netherlands,372,366,29.97,105.0,68.0,False
+3813,2022-11-21,Group 1,1,England,Iran,50,373,29.97,105.0,68.0,True
+3815,2022-11-21,Group 1,1,United States,Wales,51,384,29.97,105.0,68.0,True
+3816,2022-11-22,Group 1,1,Argentina,Saudi Arabia,364,382,29.97,105.0,68.0,True
+3817,2022-11-22,Group 1,1,Denmark,Tunisia,367,378,29.97,105.0,68.0,True
+3818,2022-11-22,Group 1,1,Mexico,Poland,58,376,29.97,105.0,68.0,True
+3819,2022-11-22,Group 1,1,France,Australia,363,386,29.97,105.0,68.0,True
+3820,2022-11-23,Group 1,1,Morocco,Croatia,374,371,29.97,105.0,68.0,True
+3821,2022-11-23,Group 1,1,Germany,Japan,368,57,29.97,105.0,68.0,True
+3822,2022-11-23,Group 1,1,Spain,Costa Rica,52,385,29.97,105.0,68.0,False
+3823,2022-11-23,Group 1,1,Belgium,Canada,362,380,29.97,105.0,68.0,True
+3824,2022-11-24,Group 1,1,Switzerland,Cameroon,370,379,29.97,105.0,68.0,True
+3825,2022-11-24,Group 1,1,Uruguay,South Korea,369,377,29.97,105.0,68.0,False
+3826,2022-11-24,Group 1,1,Portugal,Ghana,365,383,29.97,105.0,68.0,True
+3827,2022-11-24,Group 1,1,Brazil,Serbia,361,375,29.97,105.0,68.0,True
+3828,2022-11-25,Group 2,2,Wales,Iran,384,373,29.97,105.0,68.0,True
+3829,2022-11-25,Group 2,2,Qatar,Senegal,360,372,29.97,105.0,68.0,False
+3830,2022-11-25,Group 2,2,Netherlands,Ecuador,366,381,29.97,105.0,68.0,True
+3831,2022-11-25,Group 2,2,England,United States,50,51,29.97,105.0,68.0,True
+3832,2022-11-26,Group 2,2,Tunisia,Australia,378,386,29.97,105.0,68.0,False
+3833,2022-11-26,Group 2,2,Poland,Saudi Arabia,376,382,29.97,105.0,68.0,True
+3834,2022-11-26,Group 2,2,France,Denmark,363,367,29.97,105.0,68.0,True
+3835,2022-11-26,Group 2,2,Argentina,Mexico,364,58,29.97,105.0,68.0,True
+3836,2022-11-27,Group 2,2,Japan,Costa Rica,57,385,29.97,105.0,68.0,True
+3837,2022-11-27,Group 2,2,Belgium,Morocco,362,374,29.97,105.0,68.0,True
+3838,2022-11-27,Group 2,2,Croatia,Canada,371,380,29.97,105.0,68.0,True
+3839,2022-11-27,Group 2,2,Spain,Germany,52,368,29.97,105.0,68.0,True
+3840,2022-11-28,Group 2,2,Cameroon,Serbia,379,375,29.97,105.0,68.0,False
+3841,2022-11-28,Group 2,2,South Korea,Ghana,377,383,29.97,105.0,68.0,True
+3842,2022-11-28,Group 2,2,Brazil,Switzerland,361,370,29.97,105.0,68.0,True
+3843,2022-11-28,Group 2,2,Portugal,Uruguay,365,369,29.97,105.0,68.0,False
+3844,2022-11-29,Group 3,3,Ecuador,Senegal,381,372,29.97,105.0,68.0,False
+3845,2022-11-29,Group 3,3,Netherlands,Qatar,366,360,29.97,105.0,68.0,True
+3846,2022-11-29,Group 3,3,Wales,England,384,50,29.97,105.0,68.0,True
+3847,2022-11-29,Group 3,3,Iran,United States,373,51,29.97,105.0,68.0,True
+3848,2022-11-30,Group 3,3,Australia,Denmark,386,367,29.97,105.0,68.0,True
+3849,2022-11-30,Group 3,3,Tunisia,France,378,363,29.97,105.0,68.0,True
+3850,2022-11-30,Group 3,3,Poland,Argentina,376,364,29.97,105.0,68.0,True
+3851,2022-11-30,Group 3,3,Saudi Arabia,Mexico,382,58,29.97,105.0,68.0,True
+3852,2022-12-01,Group 3,3,Croatia,Belgium,371,362,29.97,105.0,68.0,True
+3853,2022-12-01,Group 3,3,Canada,Morocco,380,374,29.97,105.0,68.0,True
+3854,2022-12-01,Group 3,3,Japan,Spain,57,52,29.97,105.0,68.0,True
+3855,2022-12-01,Group 3,3,Costa Rica,Germany,385,368,29.97,105.0,68.0,True
+3856,2022-12-02,Group 3,3,Ghana,Uruguay,383,369,29.97,105.0,68.0,True
+3857,2022-12-02,Group 3,3,South Korea,Portugal,377,365,29.97,105.0,68.0,True
+3858,2022-12-02,Group 3,3,Serbia,Switzerland,375,370,29.97,105.0,68.0,True
+3859,2022-12-02,Group 3,3,Cameroon,Brazil,379,361,29.97,105.0,68.0,True
+10502,2022-12-03,Round of 16,4,Netherlands,United States,366,51,29.97,105.0,68.0,True
+10503,2022-12-03,Round of 16,4,Argentina,Australia,364,386,29.97,105.0,68.0,True
+10504,2022-12-04,Round of 16,4,France,Poland,363,376,29.97,105.0,68.0,True
+10505,2022-12-04,Round of 16,4,England,Senegal,50,372,29.97,105.0,68.0,True
+10506,2022-12-05,Round of 16,4,Japan,Croatia,57,371,29.97,105.0,68.0,True
+10507,2022-12-05,Round of 16,4,Brazil,South Korea,361,377,29.97,105.0,68.0,True
+10508,2022-12-06,Round of 16,4,Morocco,Spain,374,52,29.97,105.0,68.0,False
+10509,2022-12-06,Round of 16,4,Portugal,Switzerland,365,370,29.97,105.0,68.0,False
+10510,2022-12-09,Quarter-final,5,Croatia,Brazil,371,361,29.97,105.0,68.0,True
+10511,2022-12-09,Quarter-final,5,Netherlands,Argentina,366,364,29.97,105.0,68.0,True
+10512,2022-12-10,Quarter-final,5,Morocco,Portugal,374,365,29.97,105.0,68.0,True
+10513,2022-12-10,Quarter-final,5,England,France,50,363,29.97,105.0,68.0,True
+10514,2022-12-13,Semi-final,6,Argentina,Croatia,364,371,29.97,105.0,68.0,True
+10515,2022-12-14,Semi-final,6,France,Morocco,363,374,29.97,105.0,68.0,True
+10516,2022-12-17,Third place,7,Croatia,Morocco,371,374,29.97,105.0,68.0,True
+10517,2022-12-18,Final,8,Argentina,France,364,363,29.97,105.0,68.0,True

@@ -12,7 +12,12 @@ ML_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = Path(os.environ.get("HORSE_DATA_DIR", ML_ROOT / "data"))
 RAW_DIR = DATA_DIR / "raw"
 METRICA_DIR = RAW_DIR / "metrica"
+PFF_DIR = RAW_DIR / "pff"  # PFF FC / Gradient Sports World Cup 2022 (never committed)
 PROCESSED_DIR = DATA_DIR / "processed"
+PROCESSED_PFF_DIR = PROCESSED_DIR / "pff"
+
+# Small, derived reference tables that ARE versioned (no raw data)
+REFERENCE_DIR = ML_ROOT / "reference"
 
 OUTPUTS_DIR = ML_ROOT / "outputs"
 MODELS_DIR = ML_ROOT / "models"
