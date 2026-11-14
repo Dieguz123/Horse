@@ -45,6 +45,19 @@ def make_pitch(metadata: Metadata) -> Pitch:
     )
 
 
+def make_metre_pitch(pitch_length: float = 105, pitch_width: float = 68) -> Pitch:
+    """Pitch for processed samples: metres, origin at the centre, y up."""
+    return Pitch(
+        pitch_type="secondspectrum",
+        pitch_length=pitch_length,
+        pitch_width=pitch_width,
+        pitch_color=PITCH_COLOR,
+        line_color=LINE_COLOR,
+        linewidth=1.5,
+        goal_type="box",
+    )
+
+
 def _valid(value: float | None) -> bool:
     return value is not None and not math.isnan(value)
 

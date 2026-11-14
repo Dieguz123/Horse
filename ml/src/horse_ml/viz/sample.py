@@ -18,28 +18,22 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
-from mplsoccer import Pitch
 
 from horse_ml.paths import OUTPUTS_DIR, PROCESSED_DIR
 from horse_ml.preprocessing.build import SAMPLES_FILE
 from horse_ml.preprocessing.roles import N_SLOTS
-from horse_ml.viz.pitch import BALL_COLOR, BALL_EDGE, LINE_COLOR, PITCH_COLOR, TEXT_COLOR
+from horse_ml.viz.pitch import BALL_COLOR, BALL_EDGE, PITCH_COLOR, TEXT_COLOR, make_metre_pitch
 
 # Same two validated hues as the frame plots, here encoding attack / defence.
 ATTACK_COLOR = "#d95926"
 DEFENCE_COLOR = "#3987e5"
+# Small, semi-transparent ball so it never hides the player on it.
+BALL_SIZE = 45
+BALL_ALPHA = 0.75
 
 
 def plot_sample(row: pd.Series, output: Path, pitch_length: float = 105, pitch_width: float = 68) -> Path:
-    pitch = Pitch(
-        pitch_type="secondspectrum",
-        pitch_length=pitch_length,
-        pitch_width=pitch_width,
-        pitch_color=PITCH_COLOR,
-        line_color=LINE_COLOR,
-        linewidth=1.5,
-        goal_type="box",
-    )
+    pitch = make_metre_pitch(pitch_length, pitch_width)
     fig, ax = pitch.draw(figsize=(11, 7.5))
     fig.set_facecolor(PITCH_COLOR)
 
@@ -62,8 +56,8 @@ def plot_sample(row: pd.Series, output: Path, pitch_length: float = 105, pitch_w
     bx, by = row["ball_x"], row["ball_y"]
     pitch.arrows(bx, by, bx + row["ball_vx"], by + row["ball_vy"], ax=ax, color=BALL_COLOR,
                  width=1.5, headwidth=4, headlength=4, zorder=5)
-    pitch.scatter(bx, by, ax=ax, s=90, color=BALL_COLOR, edgecolors=BALL_EDGE, linewidth=1.5,
-                  zorder=6, label="Ball")
+    pitch.scatter(bx, by, ax=ax, s=BALL_SIZE, color=BALL_COLOR, edgecolors=BALL_EDGE, linewidth=1,
+                  alpha=BALL_ALPHA, zorder=6, label="Ball")
 
     ax.annotate("attack →", xy=(0.5, 1.0), xycoords="axes fraction", ha="center", va="bottom",
                 color=TEXT_COLOR, fontsize=10)
