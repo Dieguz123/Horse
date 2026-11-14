@@ -12,5 +12,6 @@ ML_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = Path(os.environ.get("HORSE_DATA_DIR", ML_ROOT / "data"))
 RAW_DIR = DATA_DIR / "raw"
 METRICA_DIR = RAW_DIR / "metrica"
+PROCESSED_DIR = DATA_DIR / "processed"
 
 OUTPUTS_DIR = ML_ROOT / "outputs"
