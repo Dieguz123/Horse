@@ -1,0 +1,4 @@
+game_id,split,note
+3821,train,Germany - Japan (pipeline check only)
+3839,val,Spain - Germany (pipeline check only)
+3855,test,Costa Rica - Germany (pipeline check only)
